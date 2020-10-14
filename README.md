@@ -1,2 +1,2 @@
-# architekturrichtlinie-it-bund-scraper
+# Architekturrichtlinie IT-Bund Scraper
 Scrapes the PDF files of Architekturrichtinie für die IT des Bundes for artifacts to manage them in a database.
