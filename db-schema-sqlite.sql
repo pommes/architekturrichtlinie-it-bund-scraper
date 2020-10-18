@@ -5,6 +5,7 @@ CREATE TABLE "AR_RICHTLINIE" (
 	"QUELLE"	TEXT NOT NULL CHECK("QUELLE" IN ('ARCH', 'TECH')),
 	"LEBENSZYKLUS"	TEXT NOT NULL CHECK("LEBENSZYKLUS" IN ('AKTIV', 'ERSETZT', 'ENTFERNT')),
 	"NACHFOLGER_ID"	TEXT,
+	"ENTFERNT_VERSION"	TEXT,
 	"ERSTELLT"	DATETIME NOT NULL DEFAULT current_timestamp,
 	"AKTUALISIERT"	DATETIME NOT NULL DEFAULT current_timestamp,
 	PRIMARY KEY("ID" AUTOINCREMENT)
@@ -111,8 +112,8 @@ where 1=1
 	  (select count(id) from AR_NOTIZ rel1 where rel1.RICHTLINIE_ID=r.RICHTLINIE_ID and rel1.TYP='RELEVANZ SYSARCH') = 0
 	  )
 order by
-    r.Quelle asc,
-    r.RICHTLINIE_ID asc
+    r.Quelle,
+    r.RICHTLINIE_ID
 ;
 
 
@@ -129,4 +130,57 @@ from
   inner join AR_DETAIL d on d.id=r.DETAIL_ID_AKTUELL
   join AR_TAG t on t.RICHTLINIE_ID=d.RICHTLINIE_ID
 where 1=1
+;
+
+
+CREATE VIEW "Aktuelle Änderungen" AS
+select * from (
+   -- Änderung
+	select
+		r2.ID,
+		r2.RICHTLINIE_ID,
+		r2.DETAIL_ID_AKTUELL,
+		r2.QUELLE,
+		d.BEZEICHNUNG,
+		d.VERBINDLICHKEIT,
+		n.BESCHREIBUNG
+	from AR_RICHTLINIE r1
+		inner join AR_RICHTLINIE r2 on r1.NACHFOLGER_ID=r2.RICHTLINIE_ID and r2.LEBENSZYKLUS='AKTIV'
+		inner join AR_DETAIL d on r2.DETAIL_ID_AKTUELL=d.ID
+		left join AR_NOTIZ n on r2.RICHTLINIE_ID=n.RICHTLINIE_ID and n.TYP='AENDERUNG'
+	where 1=1
+		and r1.LEBENSZYKLUS='ERSETZT'
+	union
+	-- Neu
+		select distinct
+			r1.ID,
+			r1.RICHTLINIE_ID,
+			r1.DETAIL_ID_AKTUELL,
+			r1.QUELLE,
+			d.BEZEICHNUNG,
+     		d.VERBINDLICHKEIT,
+			'neu' BESCHREIBUNG
+		from AR_RICHTLINIE r1
+			inner join AR_DETAIL d on r1.DETAIL_ID_AKTUELL=d.ID
+		where 1=1
+			and r1.LEBENSZYKLUS='AKTIV'
+			and 2 > (select count(d1.ID) from AR_DETAIL d1 where d1.RICHTLINIE_ID=r1.RICHTLINIE_ID)
+			and not exists (select r2.ID from AR_RICHTLINIE r2 where r2.NACHFOLGER_ID=r1.RICHTLINIE_ID)
+	union
+	-- Entfernt
+	select distinct
+		r1.ID,
+		r1.RICHTLINIE_ID,
+		r1.DETAIL_ID_AKTUELL,
+		r1.QUELLE,
+		(select d.BEZEICHNUNG from AR_DETAIL d where d.RICHTLINIE_ID=r1.RICHTLINIE_ID) BEZEICHNUNG,
+		(select d.VERBINDLICHKEIT from AR_DETAIL d where d.RICHTLINIE_ID=r1.RICHTLINIE_ID) VERBINDLICHKEIT,
+		'entfallen' BESCHREIBUNG
+	from AR_RICHTLINIE r1
+		inner join AR_DETAIL d1 on d1.VERSION=r1.ENTFERNT_VERSION
+			and d1.VERSION=(select d2.VERSION from AR_DETAIL d2 where d2.id=(select min(r2.DETAIL_ID_AKTUELL) from AR_RICHTLINIE r2))
+	where 1=1
+		and r1.LEBENSZYKLUS='ENTFERNT'
+)
+order by QUELLE, RICHTLINIE_ID
 ;
