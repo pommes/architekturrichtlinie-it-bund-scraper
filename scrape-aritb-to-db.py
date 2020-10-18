@@ -3,6 +3,7 @@ import sqlite3
 import re
 from enum import Enum
 from pprint import pprint
+from aritb_common import Quelle
 
 tech_pdf = 'Desktop/architekturrichtlinie_it_bund_techn_spezif_2020.pdf'
 # tech_pdf='Desktop/architekturrichtlinie_it_bund_techn_spezif_2019-anmerkungen-TIM.pdf'
@@ -15,11 +16,6 @@ arch_pages = '30-131'  # 30-131
 arch_version = '20200731-1.0'
 arch_jahr = 2020
 database = r"architekturrichtlinie-it-bund.db"
-
-
-class Quelle(Enum):
-    ARCH = 'ARCH'
-    TECH = 'TECH'
 
 
 class Richtlinie:
@@ -176,50 +172,55 @@ def update_detail_links(conn, version, quelle: Quelle):
     return rowcount
 
 
-# ... PARSE ...
-specs = []
-specs.extend(parse_arch(arch_pdf, arch_pages, arch_version, arch_jahr))
-specs.extend(parse_tech(tech_pdf, tech_pages, tech_version, tech_jahr))
-# pprint(specs)
-# exit(0)
+def main():
+    # ... PARSE ...
+    specs = []
+    specs.extend(parse_arch(arch_pdf, arch_pages, arch_version, arch_jahr))
+    specs.extend(parse_tech(tech_pdf, tech_pages, tech_version, tech_jahr))
+    # pprint(specs)
+    # exit(0)
 
-print("+++ Verbinde DB '{0}' ...".format(database))
-conn = create_connection(database)
+    print("+++ Verbinde DB '{0}' ...".format(database))
+    conn = create_connection(database)
 
-print("+++ Aktualisiere 'AR_RICHTLINIE' ...")
-rlnew = []
-for spec in specs:
-    try:
-        add_richtlinie(conn, spec)
-        rlnew.append(spec.id)
-    except sqlite3.IntegrityError:
-        pass
-    # print("Richtlinie mit ID '{0}' existiert bereits. Nichts zu tun.".format(spec.id))
+    print("+++ Aktualisiere 'AR_RICHTLINIE' ...")
+    rlnew = []
+    for spec in specs:
+        try:
+            add_richtlinie(conn, spec)
+            rlnew.append(spec.id)
+        except sqlite3.IntegrityError:
+            pass
+        # print("Richtlinie mit ID '{0}' existiert bereits. Nichts zu tun.".format(spec.id))
 
-print("{0} neue Richtlinien hinzugefügt: {1}".format(len(rlnew), rlnew))
+    print("{0} neue Richtlinien hinzugefügt: {1}".format(len(rlnew), rlnew))
 
-print("+++ Aktualisiere 'AR_DETAIL' ...")
-dnew = []
-dupd = []
-for spec in specs:
-    try:
-        add_detail(conn, spec)
-        dnew.append(spec.id)
-    except sqlite3.IntegrityError as e:
-        if "UNIQUE constraint failed" in str(e):
-            try:
-                update_detail(conn, spec)
-                dupd.append(spec.id)
-            except sqlite3.IntegrityError as e:
+    print("+++ Aktualisiere 'AR_DETAIL' ...")
+    dnew = []
+    dupd = []
+    for spec in specs:
+        try:
+            add_detail(conn, spec)
+            dnew.append(spec.id)
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                try:
+                    update_detail(conn, spec)
+                    dupd.append(spec.id)
+                except sqlite3.IntegrityError as e:
+                    print("ERROR: {0}: {1}".format(e, spec))
+            else:
                 print("ERROR: {0}: {1}".format(e, spec))
-        else:
-            print("ERROR: {0}: {1}".format(e, spec))
 
-print("{0} neue Details hinzugefügt: {1}".format(len(dnew), dnew))
-print("{0} bestehende Details aktualisiert: {1}".format(len(dupd), dupd))
+    print("{0} neue Details hinzugefügt: {1}".format(len(dnew), dnew))
+    print("{0} bestehende Details aktualisiert: {1}".format(len(dupd), dupd))
 
-print("+++ Aktualisiere Verknüpfungen 'AR_RICHTLINIE' ...")
-last_rowid = 0
-last_rowid += update_detail_links(conn, arch_version, Quelle.ARCH)
-last_rowid += update_detail_links(conn, tech_version, Quelle.TECH)
-print("{0} Details-Links an 'AR_RICHTLINIE' aktualisiert zu Details".format(last_rowid))
+    print("+++ Aktualisiere Verknüpfungen 'AR_RICHTLINIE' ...")
+    last_rowid = 0
+    last_rowid += update_detail_links(conn, arch_version, Quelle.ARCH)
+    last_rowid += update_detail_links(conn, tech_version, Quelle.TECH)
+    print("{0} Details-Links an 'AR_RICHTLINIE' aktualisiert zu Details".format(last_rowid))
+
+
+if __name__ == "__main__":
+    main()
