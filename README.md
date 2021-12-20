@@ -1,6 +1,9 @@
 # Architekturrichtlinie IT-Bund Scraper
 Scrapes the PDF files of [Architekturrichtlinie für die IT des Bundes](https://www.cio.bund.de/Web/DE/Architekturen-und-Standards/Architekturrichtlinie-IT-Bund/architekturrichtlinie_it_bund_node.html) for artifacts to manage them in a database.
 
+## DB Model
+![Model](http://www.plantuml.com/plantuml/proxy?src=https://github.com/pommes/architekturrichtlinie-it-bund-scraper/blob/main/db-schema-model.puml)
+
 # Links
 1. [MS Word: Convert text to a table or a table to text][1]
 2. [75 Of The Coolest Color Combinations For 2020][2]
