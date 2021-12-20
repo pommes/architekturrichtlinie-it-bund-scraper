@@ -1,9 +1,19 @@
 @startuml
-AR_RICHTLINIE "richtlinie"
-AR_DETAILS "detail"
-AR_TAG "tag"
-AR_NOTIZ "notiz"
 
-"richtlinie" <--- "detail"
+skinparam monochrome true
+
+package "Model" #ffffff {
+  class AR_RICHTLINIE {} 
+  class AR_DETAIL {}
+  class AR_TAG {}
+  class AR_NOTIZ {}
+  
+  AR_RICHTLINIE "1" *-- "1..*" AR_DETAIL : < specifies version of 
+  AR_RICHTLINIE "1" o--- "0..*" AR_TAG : < makes discoverable
+  AR_RICHTLINIE "1" o--- "0..*" AR_NOTIZ : < comments
+}
+
+hide members
+hide circle 
+
 @enduml
-
