@@ -1,9 +1,3 @@
 
 Alice->Bob: Test
 
-AR_RICHTLINIE "richtlinie"
-AR_DETAILS "detail"
-AR_TAG "tag"
-AR_NOTIZ "notiz"
-
-"richtlinie" <--- "detail"
